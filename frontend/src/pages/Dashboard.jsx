@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   // Calculate metrics
@@ -115,7 +116,17 @@ export default function Dashboard() {
           
           {isSearching ? (
              <div className="relative flex items-center">
-               <input type="text" autoFocus onBlur={() => setIsSearching(false)} placeholder="Search tasks..." className="pl-10 pr-4 py-2 w-48 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-dashboard-dark text-sm" />
+               <input 
+                 type="text" 
+                 autoFocus 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 onBlur={() => {
+                   if (!searchQuery) setIsSearching(false);
+                 }} 
+                 placeholder="Search tasks..." 
+                 className="pl-10 pr-4 py-2 w-48 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-dashboard-dark text-sm" 
+               />
                <Search size={16} className="absolute left-4 text-gray-400" />
              </div>
           ) : (
@@ -301,7 +312,7 @@ export default function Dashboard() {
           </div>
           
           <div className="flex gap-4 overflow-x-auto pb-4">
-            {tasks.map((task) => (
+            {tasks.filter(task => task.title.toLowerCase().includes(searchQuery.toLowerCase())).map((task) => (
               <motion.div 
                 key={task.id}
                 initial={{ opacity: 0, y: 20 }}
