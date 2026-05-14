@@ -4,6 +4,10 @@ from app.workers.celery_app import celery_app
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.db.models import Task, TaskLog, TaskStatus
 from app.core.config import settings
+import socketio
+
+# Setup sync Redis manager to emit events from synchronous Celery worker
+socket_mgr = socketio.RedisManager(settings.CELERY_BROKER_URL)
 
 engine = create_async_engine(settings.DATABASE_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(
@@ -19,6 +23,8 @@ async def _update_task_status(task_id: int, status: TaskStatus):
             task.status = status
             session.add(task)
             await session.commit()
+            # Emit socket event
+            socket_mgr.emit('task_update', {'task_id': task_id, 'status': status.value})
 
 async def _add_task_log(task_id: int, message: str):
     async with AsyncSessionLocal() as session:

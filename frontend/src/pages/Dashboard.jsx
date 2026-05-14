@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Plus, Share2, MoreVertical, CheckCircle2, Circle, Edit3, Trash2, Pin, Download, Calendar as CalendarIcon, Play, RefreshCw, BarChart2 } from 'lucide-react';
+import { Search, Bell, Plus, Share2, MoreVertical, CheckCircle2, Circle, Edit3, Trash2, Pin, Download, Calendar as CalendarIcon, Play, RefreshCw, BarChart2, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
+import { taskAPI } from '../services/api';
+import { socket } from '../services/socket';
+import { useAuth } from '../context/AuthContext';
 
-// Mock Data for Charts
 const weeklyData = [
   { name: 'M', sport: 4000, study: 2400 },
   { name: 'T', sport: 3000, study: 1398 },
@@ -13,26 +15,99 @@ const weeklyData = [
   { name: 'S', sport: 2390, study: 3800 },
   { name: 'S', sport: 3490, study: 4300 },
 ];
-
-const monthData = [
-  { name: 'Completed', value: 120 },
-  { name: 'Remaining', value: 20 },
-];
 const COLORS = ['#222222', '#f3f4f6'];
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState([
-    { id: 1, title: 'Buy Susan a gift for Bitherday', date: 'Today' },
-    { id: 2, title: 'Doctor\'s appointment on Tuesday', date: '02.09.2023' }
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  const fetchTasks = async () => {
+    if (!user) return;
+    try {
+      const data = await taskAPI.getTasks();
+      setTasks(data);
+    } catch (error) {
+      console.error("Failed to fetch tasks", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    socket.connect();
+    
+    socket.on('task_update', (data) => {
+      setTasks(prevTasks => prevTasks.map(task => 
+        task.id === data.task_id ? { ...task, status: data.status } : task
+      ));
+    });
+
+    return () => {
+      socket.off('task_update');
+      socket.disconnect();
+    };
+  }, [user]);
+
+  // Month goals state for interactivity
+  const [goals, setGoals] = useState([
+    { id: 1, text: "Deploy to Netlify", done: true },
+    { id: 2, text: "Finish Frontend UI", done: false },
+    { id: 3, text: "Connect Database", done: false },
+    { id: 4, text: "Test API Endpoints", done: false },
   ]);
 
+  const toggleGoal = (id) => {
+    setGoals(goals.map(g => g.id === id ? { ...g, done: !g.done } : g));
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle) return;
+    try {
+      const newTask = await taskAPI.createTask({ title: newTaskTitle, description: '', priority: 'medium' });
+      setTasks([newTask, ...tasks]);
+      setNewTaskTitle('');
+      setShowCreateModal(false);
+      
+      // We removed auto-refresh since socket.io handles it natively now.
+    } catch (error) {
+      console.error("Failed to create task", error);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    try {
+      await taskAPI.deleteTask(id);
+      setTasks(tasks.filter(t => t.id !== id));
+    } catch (error) {
+      console.error("Failed to delete task", error);
+    }
+  };
+
+  // Calculate metrics
+  const completedCount = tasks.filter(t => t.status === 'completed').length;
+  const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
+  const pendingCount = tasks.filter(t => t.status === 'pending').length;
+  const monthData = [
+    { name: 'Completed', value: completedCount || 1 },
+    { name: 'Remaining', value: (tasks.length - completedCount) || 1 },
+  ];
+  const percentComplete = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
+
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold">Hi, Dilan!</h2>
+        <h2 className="text-3xl font-bold">Hi, Aayush!</h2>
         <div className="flex items-center gap-4">
-          <button className="bg-dashboard-dark text-white px-5 py-2.5 rounded-full flex items-center gap-2 text-sm font-medium hover:bg-black transition-colors">
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="bg-dashboard-dark text-white px-5 py-2.5 rounded-full flex items-center gap-2 text-sm font-medium hover:bg-black transition-colors"
+          >
             <Plus size={16} /> Create
           </button>
           <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-dashboard-dark">
@@ -42,17 +117,15 @@ export default function Dashboard() {
             <Bell size={20} />
             <span className="absolute top-2 right-2 w-2 h-2 bg-dashboard-dark rounded-full"></span>
           </button>
-          <div className="w-10 h-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm">
-            <img src="https://i.pravatar.cc/150?img=11" alt="Profile" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm">
+            A
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        
         {/* Overall Information */}
         <div className="col-span-12 md:col-span-4 bg-dashboard-dark rounded-[30px] p-6 text-white relative overflow-hidden">
-          {/* Subtle glow effect */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
           
           <div className="flex justify-between items-start mb-6">
@@ -65,17 +138,17 @@ export default function Dashboard() {
           
           <div className="flex justify-between items-end mb-8">
             <div>
-              <span className="text-5xl font-bold block leading-none">43</span>
+              <span className="text-5xl font-bold block leading-none">{completedCount}</span>
               <span className="text-xs text-gray-400 mt-2 block">Tasks done<br/>for all time</span>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-bold block leading-none">2</span>
-              <span className="text-xs text-gray-400 mt-2 block">projects are<br/>stopped</span>
+              <span className="text-3xl font-bold block leading-none">{pendingCount}</span>
+              <span className="text-xs text-gray-400 mt-2 block">projects are<br/>pending</span>
             </div>
           </div>
 
           <div className="flex gap-3">
-            {[{num: 28, label: 'Projects'}, {num: 14, label: 'In Progress'}, {num: 11, label: 'Completed'}].map((stat, i) => (
+            {[{num: tasks.length, label: 'Projects'}, {num: inProgressCount, label: 'In Progress'}, {num: completedCount, label: 'Completed'}].map((stat, i) => (
               <div key={i} className="flex-1 bg-white text-dashboard-dark rounded-2xl py-3 px-2 text-center shadow-lg">
                 <span className="text-xl font-bold block">{stat.num}</span>
                 <span className="text-[10px] text-gray-500 font-medium">{stat.label}</span>
@@ -94,9 +167,8 @@ export default function Dashboard() {
                  <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-300"></div> Study</span>
                </div>
              </div>
-             <button className="text-gray-400 hover:text-dashboard-dark"><RefreshCw size={18} /></button>
+             <button onClick={fetchTasks} className="text-gray-400 hover:text-dashboard-dark"><RefreshCw size={18} /></button>
            </div>
-           
            <div className="h-40 w-full relative">
               <div className="absolute top-0 right-10 bg-dashboard-dark text-white text-[10px] py-1 px-2 rounded-lg z-10">+24%</div>
               <ResponsiveContainer width="100%" height="100%">
@@ -123,14 +195,13 @@ export default function Dashboard() {
                <h3 className="font-semibold text-lg">Month progress</h3>
                <button className="text-gray-400"><BarChart2 size={18} /></button>
              </div>
-             <p className="text-[10px] text-gray-500 font-medium">+20% compared to last month</p>
+             <p className="text-[10px] text-gray-500 font-medium">Task Completion Ratio</p>
            </div>
            
            <div className="flex items-center justify-between">
               <div className="space-y-2">
-                 <span className="flex items-center gap-2 text-xs font-medium text-gray-600"><div className="w-1.5 h-1.5 rounded-full bg-dashboard-dark"></div> Sport</span>
-                 <span className="flex items-center gap-2 text-xs font-medium text-gray-600"><div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> Study</span>
-                 <span className="flex items-center gap-2 text-xs font-medium text-gray-600"><div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div> Project</span>
+                 <span className="flex items-center gap-2 text-xs font-medium text-gray-600"><div className="w-1.5 h-1.5 rounded-full bg-dashboard-dark"></div> Done</span>
+                 <span className="flex items-center gap-2 text-xs font-medium text-gray-600"><div className="w-1.5 h-1.5 rounded-full bg-gray-200"></div> Left</span>
               </div>
               <div className="w-24 h-24 relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -149,20 +220,10 @@ export default function Dashboard() {
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute inset-0 flex items-center justify-center font-bold text-sm">120%</div>
+                <div className="absolute inset-0 flex items-center justify-center font-bold text-sm">{percentComplete}%</div>
               </div>
            </div>
-           
-           <div className="flex items-center gap-2 mt-4">
-              <button className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors">
-                <Share2 size={16} />
-              </button>
-              <button className="flex-1 border border-gray-200 rounded-full py-2 flex items-center justify-center gap-2 text-sm font-medium hover:bg-gray-50 transition-colors">
-                Download Report <Download size={14} />
-              </button>
-           </div>
         </div>
-
       </div>
 
       <div className="grid grid-cols-12 gap-6 mt-6">
@@ -171,35 +232,31 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-lg">Month goals:</h3>
             <div className="flex gap-2">
-               <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-xs font-bold">14</button>
+               <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-xs font-bold">{goals.length}</button>
                <button className="text-gray-400"><Edit3 size={16} /></button>
             </div>
           </div>
           
           <ul className="space-y-4">
-            <li className="flex items-center gap-3">
-              <CheckCircle2 className="text-dashboard-dark" size={20} />
-              <span className="text-sm font-medium text-dashboard-dark line-through decoration-gray-300">Read 2 books</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <Circle className="text-gray-300" size={20} />
-              <span className="text-sm font-medium text-gray-500">Sports every day</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <Circle className="text-gray-300" size={20} />
-              <span className="text-sm font-medium text-gray-500">Complete the course</span>
-            </li>
-            <li className="flex items-center gap-3">
-              <Circle className="text-gray-300" size={20} />
-              <span className="text-sm font-medium text-gray-500">Bend down with a parachute</span>
-            </li>
+            {goals.map(goal => (
+              <li key={goal.id} className="flex items-center gap-3 cursor-pointer" onClick={() => toggleGoal(goal.id)}>
+                {goal.done ? (
+                  <CheckCircle2 className="text-dashboard-dark" size={20} />
+                ) : (
+                  <Circle className="text-gray-300" size={20} />
+                )}
+                <span className={`text-sm font-medium ${goal.done ? 'text-dashboard-dark line-through decoration-gray-300' : 'text-gray-500'}`}>
+                  {goal.text}
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
 
         {/* Task in Process */}
         <div className="col-span-12 md:col-span-9">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-semibold text-lg flex items-center gap-2">Task In process <span className="text-gray-400 font-normal">(2)</span></h3>
+            <h3 className="font-semibold text-lg flex items-center gap-2">All Tasks <span className="text-gray-400 font-normal">({tasks.length})</span></h3>
             <button className="text-sm text-gray-500 hover:text-dashboard-dark font-medium flex items-center gap-1">Open archive &gt;</button>
           </div>
           
@@ -209,26 +266,31 @@ export default function Dashboard() {
                 key={task.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[30px] p-6 shadow-sm min-w-[240px] flex flex-col justify-between relative group cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-[30px] p-6 shadow-sm min-w-[260px] flex flex-col justify-between relative group cursor-pointer hover:shadow-md transition-shadow"
               >
                 <div className="flex justify-between items-start mb-6">
                   <div className="w-10 h-10 border border-gray-100 rounded-2xl flex items-center justify-center">
                     <CalendarIcon size={18} className="text-gray-400" />
                   </div>
-                  <button className="text-gray-400 group-hover:text-dashboard-dark"><MoreVertical size={18} /></button>
+                  <div className="flex flex-col items-end">
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-semibold uppercase tracking-wide
+                      ${task.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                        task.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 
+                        task.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {task.status.replace('_', ' ')}
+                    </span>
+                  </div>
                   
-                  {/* Hover Menu Simulation */}
+                  {/* Hover Menu */}
                   <div className="absolute top-12 right-4 bg-dashboard-dark text-white rounded-xl p-2 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-10 text-xs w-28">
-                    <button className="flex items-center justify-between w-full p-2 hover:bg-white/10 rounded">Pin Note <Pin size={12}/></button>
-                    <button className="flex items-center justify-between w-full p-2 hover:bg-white/10 rounded">Edit <Edit3 size={12}/></button>
-                    <button className="flex items-center justify-between w-full p-2 hover:bg-white/10 rounded text-red-400">Delete <Trash2 size={12}/></button>
+                    <button onClick={() => handleDeleteTask(task.id)} className="flex items-center justify-between w-full p-2 hover:bg-white/10 rounded text-red-400">Delete <Trash2 size={12}/></button>
                   </div>
                 </div>
                 
                 <h4 className="font-semibold text-lg mb-6 pr-4 leading-tight">{task.title}</h4>
                 
                 <div className="flex justify-between items-end mt-auto">
-                  <span className="text-xs text-gray-400 font-medium">{task.date}</span>
+                  <span className="text-xs text-gray-400 font-medium">{new Date(task.created_at).toLocaleDateString()}</span>
                   <button className="w-10 h-10 bg-dashboard-dark rounded-2xl flex items-center justify-center text-white hover:bg-black transition-colors">
                     <Bell size={16} />
                   </button>
@@ -236,7 +298,9 @@ export default function Dashboard() {
               </motion.div>
             ))}
             
-            <button className="min-w-[240px] border-2 border-dashed border-gray-300 rounded-[30px] flex flex-col items-center justify-center text-gray-500 hover:text-dashboard-dark hover:border-dashboard-dark transition-colors gap-2 bg-transparent">
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="min-w-[260px] border-2 border-dashed border-gray-300 rounded-[30px] flex flex-col items-center justify-center text-gray-500 hover:text-dashboard-dark hover:border-dashboard-dark transition-colors gap-2 bg-transparent">
               <Plus size={24} />
               <span className="font-medium">Add task</span>
             </button>
@@ -257,45 +321,66 @@ export default function Dashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-dashboard-dark text-white rounded-[30px] p-6 relative overflow-hidden">
-             <div className="flex justify-between items-start mb-8">
-               <div>
-                 <h4 className="font-semibold text-lg">New Schedule</h4>
-                 <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                   <div className="w-1.5 h-1.5 rounded-full bg-white"></div> In progress
-                 </div>
-               </div>
-               <div className="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold">2/6</div>
-             </div>
-             <p className="text-xs text-gray-400 line-clamp-2">Done: Develop a new plan for Alina's education; Print a new timetable; Buy...</p>
-          </div>
-          
-          <div className="bg-dashboard-dark text-white rounded-[30px] p-6 relative overflow-hidden flex flex-col justify-between">
-             <div className="flex justify-between items-start">
-               <div>
-                 <h4 className="font-semibold text-lg">Prototype animation</h4>
-                 <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                   <div className="w-1.5 h-1.5 rounded-full bg-white"></div> Completed
-                 </div>
-               </div>
-               <div className="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold">1/1</div>
-             </div>
-          </div>
-          
-          <div className="bg-dashboard-dark text-white rounded-[30px] p-6 relative overflow-hidden flex flex-col justify-between">
-             <div className="flex justify-between items-start">
-               <div>
-                 <h4 className="font-semibold text-lg">Ai Project 2 part</h4>
-                 <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                   <div className="w-1.5 h-1.5 rounded-full bg-white"></div> In progress
-                 </div>
-               </div>
-               <div className="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold">2/3</div>
-             </div>
-          </div>
+          {tasks.slice(0, 3).map((task, i) => (
+            <div key={task.id} className="bg-dashboard-dark text-white rounded-[30px] p-6 relative overflow-hidden flex flex-col justify-between">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h4 className="font-semibold text-lg pr-4">{task.title}</h4>
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                    <div className={`w-1.5 h-1.5 rounded-full ${task.status === 'completed' ? 'bg-green-400' : task.status === 'in_progress' ? 'bg-blue-400' : 'bg-white'}`}></div> 
+                    {task.status.replace('_', ' ')}
+                  </div>
+                </div>
+                <div className="w-10 h-10 border-2 border-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">
+                  {task.status === 'completed' ? '1/1' : '0/1'}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 line-clamp-2 mt-4">
+                Task created on {new Date(task.created_at).toLocaleDateString()}. Currently {task.status.replace('_', ' ')}.
+              </p>
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <div className="col-span-3 text-center text-gray-400 py-10">No tasks created yet.</div>
+          )}
         </div>
       </div>
 
+      {/* Create Task Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[30px] p-8 w-full max-w-md shadow-2xl relative"
+          >
+            <button onClick={() => setShowCreateModal(false)} className="absolute top-6 right-6 text-gray-400 hover:text-black">
+              <X size={20} />
+            </button>
+            <h2 className="text-2xl font-bold mb-6">Create New Task</h2>
+            <form onSubmit={handleCreateTask}>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Task Title</label>
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-dashboard-dark"
+                  placeholder="e.g., Deploy to Netlify"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={!newTaskTitle}
+                className="w-full bg-dashboard-dark text-white py-3 rounded-full font-medium hover:bg-black transition-colors disabled:opacity-50"
+              >
+                Dispatch Task to Workers
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { LayoutDashboard, Calendar, CheckSquare, BarChart2, FileText, Settings, Users, Plug } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
+import { AuthProvider } from './context/AuthContext';
+import LoginModal from './components/LoginModal';
 
 function Sidebar() {
   const menuItems = [
@@ -27,9 +29,9 @@ function Sidebar() {
     <div className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-100 flex flex-col py-6 px-4">
       <div className="flex items-center gap-2 mb-10 px-2">
         <div className="w-8 h-8 bg-black rounded flex items-center justify-center">
-          <span className="text-white font-bold text-xs">iD</span>
+          <span className="text-white font-bold text-xs">QN</span>
         </div>
-        <h1 className="text-xl font-bold">iDraft</h1>
+        <h1 className="text-xl font-bold">QueueNest</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -88,27 +90,30 @@ function Sidebar() {
 
 function App() {
   return (
-    <Router>
-      <div className="flex min-h-screen bg-dashboard-light relative">
-        {/* Background gradient effects typical in premium designs */}
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-white opacity-40 blur-[100px]"></div>
-           <div className="absolute top-[20%] right-[-10%] w-[30%] h-[50%] rounded-full bg-gray-200 opacity-20 blur-[120px]"></div>
+    <AuthProvider>
+      <Router>
+        <div className="flex min-h-screen bg-dashboard-light relative">
+          <LoginModal />
+          {/* Background gradient effects typical in premium designs */}
+          <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-white opacity-40 blur-[100px]"></div>
+             <div className="absolute top-[20%] right-[-10%] w-[30%] h-[50%] rounded-full bg-gray-200 opacity-20 blur-[120px]"></div>
+          </div>
+          
+          <div className="z-10 relative flex w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8">
+             {/* Modern App Container */}
+             <div className="bg-dashboard-light/80 backdrop-blur-xl border border-white/50 w-full rounded-[40px] shadow-2xl flex overflow-hidden relative">
+                <Sidebar />
+                <div className="flex-1 ml-64 p-8 overflow-y-auto">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                  </Routes>
+                </div>
+             </div>
+          </div>
         </div>
-        
-        <div className="z-10 relative flex w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8">
-           {/* Modern App Container */}
-           <div className="bg-dashboard-light/80 backdrop-blur-xl border border-white/50 w-full rounded-[40px] shadow-2xl flex overflow-hidden relative">
-              <Sidebar />
-              <div className="flex-1 ml-64 p-8 overflow-y-auto">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                </Routes>
-              </div>
-           </div>
-        </div>
-      </div>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 
