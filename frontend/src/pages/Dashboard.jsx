@@ -85,6 +85,11 @@ export default function Dashboard() {
     }
   };
 
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+
   // Calculate metrics
   const completedCount = tasks.filter(t => t.status === 'completed').length;
   const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
@@ -96,7 +101,7 @@ export default function Dashboard() {
   const percentComplete = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative" onClick={() => { setShowProfileMenu(false); setShowNotifications(false); setShowShareMenu(false); }}>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h2 className="text-3xl font-bold">Hi, Aayush!</h2>
@@ -107,15 +112,46 @@ export default function Dashboard() {
           >
             <Plus size={16} /> Create
           </button>
-          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-dashboard-dark">
-            <Search size={20} />
-          </button>
-          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-dashboard-dark relative">
-            <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-dashboard-dark rounded-full"></span>
-          </button>
-          <div className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm">
-            A
+          
+          {isSearching ? (
+             <div className="relative flex items-center">
+               <input type="text" autoFocus onBlur={() => setIsSearching(false)} placeholder="Search tasks..." className="pl-10 pr-4 py-2 w-48 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-dashboard-dark text-sm" />
+               <Search size={16} className="absolute left-4 text-gray-400" />
+             </div>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); setIsSearching(true); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-dashboard-dark">
+              <Search size={20} />
+            </button>
+          )}
+
+          <div className="relative">
+            <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); setShowProfileMenu(false); }} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-gray-600 hover:text-dashboard-dark relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-dashboard-dark rounded-full"></span>
+            </button>
+            {showNotifications && (
+              <div className="absolute top-12 right-0 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50" onClick={e => e.stopPropagation()}>
+                <h4 className="font-bold text-sm mb-3">Notifications</h4>
+                <div className="text-xs text-gray-500 py-2 border-b border-gray-100 flex items-center gap-2"><div className="w-2 h-2 bg-dashboard-dark rounded-full"></div> System updated successfully</div>
+                <div className="text-xs text-gray-500 py-2 flex items-center gap-2"><div className="w-2 h-2 bg-dashboard-dark rounded-full"></div> 2 tasks pending review</div>
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <button onClick={(e) => { e.stopPropagation(); setShowProfileMenu(!showProfileMenu); setShowNotifications(false); }} className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm hover:ring-2 hover:ring-gray-200 transition-all">
+              A
+            </button>
+            {showProfileMenu && (
+              <div className="absolute top-12 right-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50" onClick={e => e.stopPropagation()}>
+                <div className="px-4 py-2 border-b border-gray-50">
+                  <p className="text-sm font-bold">Aayush Mandavia</p>
+                  <p className="text-xs text-gray-500">aayush@demo.com</p>
+                </div>
+                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile Settings</button>
+                <button className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">Log Out</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -125,15 +161,22 @@ export default function Dashboard() {
         <div className="col-span-12 md:col-span-4 bg-dashboard-dark rounded-[30px] p-6 text-white relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
           
-          <div className="flex justify-between items-start mb-6">
+          <div className="flex justify-between items-start mb-6 relative z-10">
             <h3 className="font-semibold text-lg">Overall Information</h3>
-            <div className="flex gap-2">
-              <button className="text-gray-400 hover:text-white"><Share2 size={18} /></button>
+            <div className="flex gap-2 relative">
+              <button onClick={(e) => { e.stopPropagation(); setShowShareMenu(!showShareMenu); }} className="text-gray-400 hover:text-white"><Share2 size={18} /></button>
               <button className="text-gray-400 hover:text-white"><MoreVertical size={18} /></button>
+              
+              {showShareMenu && (
+                 <div className="absolute top-6 right-0 w-32 bg-white text-gray-800 rounded-xl shadow-xl py-2 z-50" onClick={e => e.stopPropagation()}>
+                    <button className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"><Share2 size={12}/> Copy Link</button>
+                    <button className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"><Download size={12}/> Export CSV</button>
+                 </div>
+              )}
             </div>
           </div>
           
-          <div className="flex justify-between items-end mb-8">
+          <div className="flex justify-between items-end mb-8 relative z-10">
             <div>
               <span className="text-5xl font-bold block leading-none">{completedCount}</span>
               <span className="text-xs text-gray-400 mt-2 block">Tasks done<br/>for all time</span>
