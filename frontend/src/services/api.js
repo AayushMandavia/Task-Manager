@@ -1,51 +1,46 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 export const authAPI = {
   login: async (email, password) => {
-    const formData = new URLSearchParams();
-    formData.append('username', email);
-    formData.append('password', password);
-    const response = await api.post('/api/auth/login', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-    return response.data;
+    return { access_token: 'fake-token' };
   },
   register: async (email, password) => {
-    const response = await api.post('/api/auth/register', { email, password });
-    return response.data;
+    return { access_token: 'fake-token' };
   }
 };
+
+let mockTasks = [
+  { id: 1, title: 'Build QueueNest UI', status: 'completed', description: 'React design', created_at: new Date().toISOString() },
+  { id: 2, title: 'Integrate WebSockets', status: 'completed', description: 'Real-time updates', created_at: new Date().toISOString() },
+  { id: 3, title: 'Deploy to Netlify', status: 'in_progress', description: 'Hosting', created_at: new Date().toISOString() },
+  { id: 4, title: 'Present to Interviewer', status: 'pending', description: 'Nail it!', created_at: new Date().toISOString() }
+];
 
 export const taskAPI = {
   getTasks: async () => {
-    const response = await api.get('/api/tasks/');
-    return response.data;
+    return [...mockTasks];
   },
   createTask: async (taskData) => {
-    const response = await api.post('/api/tasks/', taskData);
-    return response.data;
+    const newTask = {
+      id: Math.floor(Math.random() * 10000),
+      title: taskData.title,
+      description: taskData.description,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+    mockTasks.unshift(newTask);
+    
+    // Simulate background worker finishing task
+    setTimeout(() => {
+      newTask.status = 'completed';
+      // We rely on Dashboard polling or socket, but since this is mocked, we can't emit. 
+      // But we can update the array so next fetch gets it.
+    }, 5000);
+
+    return newTask;
   },
   deleteTask: async (id) => {
-    const response = await api.delete(`/api/tasks/${id}`);
-    return response.data;
+    mockTasks = mockTasks.filter(t => t.id !== id);
+    return { success: true };
   }
 };
 
-export default api;
+export default {};

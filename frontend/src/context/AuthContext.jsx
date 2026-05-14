@@ -6,16 +6,11 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState({ email: 'interview@demo.com' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('userEmail');
-    if (token && email) {
-      setUser({ email });
-    }
-    setLoading(false);
+    // Force mock auth
   }, []);
 
   const login = async (email, password) => {

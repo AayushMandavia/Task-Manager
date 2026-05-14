@@ -38,17 +38,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchTasks();
-    socket.connect();
     
-    socket.on('task_update', (data) => {
-      setTasks(prevTasks => prevTasks.map(task => 
-        task.id === data.task_id ? { ...task, status: data.status } : task
-      ));
-    });
+    // Polling simulation since mock api updates internally after 5s
+    const interval = setInterval(() => {
+      fetchTasks();
+    }, 2000);
 
     return () => {
-      socket.off('task_update');
-      socket.disconnect();
+      clearInterval(interval);
     };
   }, [user]);
 
