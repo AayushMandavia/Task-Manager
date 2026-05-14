@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Plus, Share2, MoreVertical, CheckCircle2, Circle, Edit3, Trash2, Pin, Download, Calendar as CalendarIcon, Play, RefreshCw } from 'lucide-react';
+import { Search, Bell, Plus, Share2, MoreVertical, CheckCircle2, Circle, Edit3, Trash2, Pin, Download, Calendar as CalendarIcon, Play, RefreshCw, BarChart2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
