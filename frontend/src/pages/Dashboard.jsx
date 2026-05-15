@@ -140,7 +140,7 @@ export default function Dashboard() {
     <div className="w-full relative" onClick={() => { setShowProfileMenu(false); setShowNotifications(false); setShowShareMenu(false); }}>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold">Hi, Aayush!</h2>
+        <h2 className="text-3xl font-bold">Hi, {user?.displayName ? user.displayName.split(' ')[0] : (user?.email?.split('@')[0] || 'User')}! 👋</h2>
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -186,12 +186,12 @@ export default function Dashboard() {
 
           <div className="relative">
             <button onClick={(e) => { e.stopPropagation(); setShowProfileMenu(!showProfileMenu); setShowNotifications(false); }} className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm hover:ring-2 hover:ring-gray-200 transition-all uppercase">
-              {user?.email?.charAt(0) || 'U'}
+              {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </button>
             {showProfileMenu && (
               <div className="absolute top-12 right-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50" onClick={e => e.stopPropagation()}>
                 <div className="px-4 py-2 border-b border-gray-50">
-                  <p className="text-sm font-bold truncate">{user?.email?.split('@')[0] || 'User'}</p>
+                  <p className="text-sm font-bold truncate">{user?.displayName || user?.email?.split('@')[0] || 'User'}</p>
                   <p className="text-xs text-gray-500 truncate">{user?.email || 'guest@demo.com'}</p>
                 </div>
                 <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
@@ -243,7 +243,7 @@ export default function Dashboard() {
             >
               <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" className="w-10 h-10 rounded-full border-2 border-white shadow-sm hover:ring-2 hover:ring-dashboard-dark transition-all" />
               <div className="hidden md:block">
-                <p className="text-sm font-semibold">{user?.email?.split('@')[0] || 'Aayush'}</p>
+                <p className="text-sm font-semibold">{user?.displayName || user?.email?.split('@')[0] || 'User'}</p>
                 <p className="text-xs text-gray-500">Free Plan</p>
               </div>
               <button><ChevronDown size={16} className="text-gray-400" /></button>

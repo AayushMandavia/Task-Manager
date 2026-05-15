@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, X, ArrowRight, Loader2, Info } from 'lucide-react';
+import { Mail, Lock, X, ArrowRight, Loader2, Info, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginModal() {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ export default function LoginModal() {
       if (isLogin) {
         await login(email, password);
       } else {
-        await register(email, password);
+        await register(email, password, name);
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'An error occurred');
@@ -85,6 +86,30 @@ export default function LoginModal() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <AnimatePresence>
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-1 overflow-hidden"
+                >
+                  <label className="text-xs font-semibold text-gray-600 uppercase">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-dashboard-dark focus:border-transparent bg-gray-50/50"
+                      placeholder="John Doe"
+                      required={!isLogin}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="space-y-1">
               <label className="text-xs font-semibold text-gray-600 uppercase">Email</label>
               <div className="relative">
