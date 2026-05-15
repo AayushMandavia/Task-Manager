@@ -185,17 +185,24 @@ export default function Dashboard() {
           </div>
 
           <div className="relative">
-            <button onClick={(e) => { e.stopPropagation(); setShowProfileMenu(!showProfileMenu); setShowNotifications(false); }} className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm hover:ring-2 hover:ring-gray-200 transition-all">
-              A
+            <button onClick={(e) => { e.stopPropagation(); setShowProfileMenu(!showProfileMenu); setShowNotifications(false); }} className="w-10 h-10 bg-dashboard-dark text-white rounded-full flex items-center justify-center font-bold border-2 border-white shadow-sm hover:ring-2 hover:ring-gray-200 transition-all uppercase">
+              {user?.email?.charAt(0) || 'U'}
             </button>
             {showProfileMenu && (
               <div className="absolute top-12 right-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50" onClick={e => e.stopPropagation()}>
                 <div className="px-4 py-2 border-b border-gray-50">
-                  <p className="text-sm font-bold">Aayush Mandavia</p>
-                  <p className="text-xs text-gray-500">aayush@demo.com</p>
+                  <p className="text-sm font-bold truncate">{user?.email?.split('@')[0] || 'User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email || 'guest@demo.com'}</p>
                 </div>
-                <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile Settings</button>
-                <button className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">Log Out</button>
+                <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                  Profile
+                </button>
+                <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                  Settings
+                </button>
+                <button onClick={() => { logout(); setShowProfileMenu(false); }} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium transition-colors">
+                  Logout
+                </button>
               </div>
             )}
           </div>
@@ -225,7 +232,39 @@ export default function Dashboard() {
           <div className="flex justify-between items-end mb-8 relative z-10">
             <div>
               <span className="text-5xl font-bold block leading-none">{completedCount}</span>
-              <span className="text-xs text-gray-400 mt-2 block">Tasks done<br/>for all time</span>
+              <div className="relative">
+            <div 
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => {
+                // simple toggle for a dropdown state
+                const el = document.getElementById('profile-dropdown');
+                if (el) el.classList.toggle('hidden');
+              }}
+            >
+              <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" className="w-10 h-10 rounded-full border-2 border-white shadow-sm hover:ring-2 hover:ring-dashboard-dark transition-all" />
+              <div className="hidden md:block">
+                <p className="text-sm font-semibold">{user?.email?.split('@')[0] || 'Aayush'}</p>
+                <p className="text-xs text-gray-500">Free Plan</p>
+              </div>
+              <button><ChevronDown size={16} className="text-gray-400" /></button>
+            </div>
+            
+            {/* Profile Dropdown */}
+            <div id="profile-dropdown" className="hidden absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
+              <div className="px-4 py-2 border-b border-gray-50 mb-1">
+                <p className="text-sm font-bold text-gray-800 truncate">{user?.email}</p>
+              </div>
+              <button className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-dashboard-dark transition-colors">
+                Profile Settings
+              </button>
+              <button 
+                onClick={logout}
+                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
             </div>
             <div className="text-right">
               <span className="text-3xl font-bold block leading-none">{pendingCount}</span>
