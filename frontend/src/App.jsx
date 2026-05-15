@@ -24,7 +24,7 @@ function Sidebar({ activeTab, setActiveTab }) {
         <div className="w-8 h-8 bg-black rounded flex items-center justify-center">
           <span className="text-white font-bold text-xs">QN</span>
         </div>
-        <h1 className="text-xl font-bold">QueueNest</h1>
+        <h1 className="text-xl font-bold">QueueNest V2</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2">
