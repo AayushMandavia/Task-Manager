@@ -1,3 +1,6 @@
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
+
 export const authAPI = {
   login: async (email, password) => {
     return { access_token: 'fake-token' };
@@ -7,62 +10,58 @@ export const authAPI = {
   }
 };
 
-// Initial mock data for first-time users
-const initialTasks = [
-  { id: 1, title: 'Build QueueNest UI', status: 'completed', description: 'React design', created_at: new Date().toISOString() },
-  { id: 2, title: 'Integrate WebSockets', status: 'completed', description: 'Real-time updates', created_at: new Date().toISOString() },
-  { id: 3, title: 'Deploy to Netlify', status: 'in_progress', description: 'Hosting', created_at: new Date().toISOString() },
-  { id: 4, title: 'Present to Interviewer', status: 'pending', description: 'Nail it!', created_at: new Date().toISOString() }
-];
-
-const getLocalTasks = () => {
-  const email = localStorage.getItem('userEmail') || 'guest';
-  const allData = JSON.parse(localStorage.getItem('userTasks') || '{}');
-  if (!allData[email]) {
-    allData[email] = [...initialTasks];
-    localStorage.setItem('userTasks', JSON.stringify(allData));
-  }
-  return allData[email];
-};
-
-const saveLocalTasks = (tasks) => {
-  const email = localStorage.getItem('userEmail') || 'guest';
-  const allData = JSON.parse(localStorage.getItem('userTasks') || '{}');
-  allData[email] = tasks;
-  localStorage.setItem('userTasks', JSON.stringify(allData));
-};
-
 export const taskAPI = {
   getTasks: async () => {
-    return getLocalTasks();
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    const q = query(collection(db, "tasks"), where("userEmail", "==", user.email));
+    const querySnapshot = await getDocs(q);
+    const tasks = [];
+    querySnapshot.forEach((doc) => {
+      tasks.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Sort by created_at descending
+    return tasks.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   },
+  
   createTask: async (taskData) => {
-    const newTask = {
-      id: Math.floor(Math.random() * 10000),
+    const user = auth.currentUser;
+    if (!user) throw new Error("Not authenticated");
+
+    const newTaskData = {
       title: taskData.title,
       description: taskData.description,
       status: 'pending',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      userEmail: user.email
     };
-    
-    const tasks = getLocalTasks();
-    const updatedTasks = [newTask, ...tasks];
-    saveLocalTasks(updatedTasks);
 
-    // Simulate completion
-    setTimeout(() => {
-      const currentTasks = getLocalTasks();
-      const finalTasks = currentTasks.map(t => t.id === newTask.id ? { ...t, status: 'completed' } : t);
-      saveLocalTasks(finalTasks);
+    const docRef = await addDoc(collection(db, "tasks"), newTaskData);
+    const newTask = { id: docRef.id, ...newTaskData };
+
+    // Auto-update to completed
+    setTimeout(async () => {
+      try {
+        const taskRef = doc(db, "tasks", docRef.id);
+        await updateDoc(taskRef, { status: 'completed' });
+      } catch (e) {
+        console.error("Failed to auto-update task", e);
+      }
     }, 5000);
 
     return newTask;
   },
+  
   deleteTask: async (id) => {
-    const tasks = getLocalTasks();
-    const updatedTasks = tasks.filter(t => t.id !== id);
-    saveLocalTasks(updatedTasks);
-    return { success: true };
+    try {
+      await deleteDoc(doc(db, "tasks", id));
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      return { success: false };
+    }
   }
 };
 

@@ -1,4 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -9,48 +16,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for existing session
-    const savedEmail = localStorage.getItem('userEmail');
-    if (savedEmail) {
-      setUser({ email: savedEmail });
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if user exists in local DB
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if (!users[email] || users[email] !== password) {
-      throw { response: { data: { detail: 'Invalid email or password. Please sign up if you do not have an account.' } } };
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      throw { response: { data: { detail: error.message } } };
     }
-
-    localStorage.setItem('token', 'mock-jwt-token');
-    localStorage.setItem('userEmail', email);
-    setUser({ email });
   };
 
   const register = async (email, password) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if (users[email]) {
-      throw { response: { data: { detail: 'Account already exists! Please sign in.' } } };
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      throw { response: { data: { detail: error.message } } };
     }
-    
-    // Save user
-    users[email] = password;
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    return login(email, password);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userEmail');
-    setUser(null);
+  const logout = async () => {
+    await signOut(auth);
   };
 
   return (
