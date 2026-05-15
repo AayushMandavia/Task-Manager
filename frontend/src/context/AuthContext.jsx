@@ -1,27 +1,49 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState({ email: 'interview@demo.com' });
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Force mock auth
+    // Check local storage for existing session
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedEmail) {
+      setUser({ email: savedEmail });
+    }
+    setLoading(false);
   }, []);
 
   const login = async (email, password) => {
-    const data = await authAPI.login(email, password);
-    localStorage.setItem('token', data.access_token);
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Check if user exists in local DB
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (!users[email] || users[email] !== password) {
+      throw { response: { data: { detail: 'Invalid email or password. Please sign up if you do not have an account.' } } };
+    }
+
+    localStorage.setItem('token', 'mock-jwt-token');
     localStorage.setItem('userEmail', email);
     setUser({ email });
   };
 
   const register = async (email, password) => {
-    await authAPI.register(email, password);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if (users[email]) {
+      throw { response: { data: { detail: 'Account already exists! Please sign in.' } } };
+    }
+    
+    // Save user
+    users[email] = password;
+    localStorage.setItem('users', JSON.stringify(users));
+    
     return login(email, password);
   };
 
@@ -33,7 +55,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

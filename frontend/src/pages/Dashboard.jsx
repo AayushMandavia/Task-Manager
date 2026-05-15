@@ -50,15 +50,50 @@ export default function Dashboard() {
   }, [user]);
 
   // Month goals state for interactivity
-  const [goals, setGoals] = useState([
-    { id: 1, text: "Deploy to Netlify", done: true },
-    { id: 2, text: "Finish Frontend UI", done: false },
-    { id: 3, text: "Connect Database", done: false },
-    { id: 4, text: "Test API Endpoints", done: false },
-  ]);
+  const loadGoals = () => {
+    const userEmail = user?.email || 'guest';
+    const allGoals = JSON.parse(localStorage.getItem('userGoals') || '{}');
+    if (!allGoals[userEmail]) {
+      allGoals[userEmail] = [
+        { id: 1, text: "Deploy to Netlify", done: true },
+        { id: 2, text: "Finish Frontend UI", done: false },
+        { id: 3, text: "Connect Database", done: false },
+        { id: 4, text: "Test API Endpoints", done: false },
+      ];
+      localStorage.setItem('userGoals', JSON.stringify(allGoals));
+    }
+    return allGoals[userEmail];
+  };
+
+  const [goals, setGoals] = useState([]);
+  const [isEditingGoals, setIsEditingGoals] = useState(false);
+  const [newGoalText, setNewGoalText] = useState('');
+
+  useEffect(() => {
+    if (user) setGoals(loadGoals());
+  }, [user]);
+
+  const saveGoals = (newGoals) => {
+    const userEmail = user?.email || 'guest';
+    const allGoals = JSON.parse(localStorage.getItem('userGoals') || '{}');
+    allGoals[userEmail] = newGoals;
+    localStorage.setItem('userGoals', JSON.stringify(allGoals));
+    setGoals(newGoals);
+  };
 
   const toggleGoal = (id) => {
-    setGoals(goals.map(g => g.id === id ? { ...g, done: !g.done } : g));
+    saveGoals(goals.map(g => g.id === id ? { ...g, done: !g.done } : g));
+  };
+
+  const deleteGoal = (id) => {
+    saveGoals(goals.filter(g => g.id !== id));
+  };
+
+  const addGoal = () => {
+    if (!newGoalText.trim()) return;
+    const newGoal = { id: Date.now(), text: newGoalText, done: false };
+    saveGoals([...goals, newGoal]);
+    setNewGoalText('');
   };
 
   const handleCreateTask = async (e) => {
@@ -279,29 +314,59 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-12 gap-6 mt-6">
         {/* Month Goals */}
-        <div className="col-span-12 md:col-span-3 bg-white rounded-[30px] p-6 shadow-sm">
+        <div className="col-span-12 md:col-span-3 bg-white rounded-[30px] p-6 shadow-sm flex flex-col max-h-[400px]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-semibold text-lg">Month goals:</h3>
             <div className="flex gap-2">
                <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-xs font-bold">{goals.length}</button>
-               <button className="text-gray-400"><Edit3 size={16} /></button>
+               <button onClick={() => setIsEditingGoals(!isEditingGoals)} className={`text-gray-400 hover:text-dashboard-dark ${isEditingGoals ? 'text-dashboard-dark' : ''}`}><Edit3 size={16} /></button>
             </div>
           </div>
           
-          <ul className="space-y-4">
+          <ul className="space-y-4 overflow-y-auto flex-1 mb-4 pr-2">
             {goals.map(goal => (
-              <li key={goal.id} className="flex items-center gap-3 cursor-pointer" onClick={() => toggleGoal(goal.id)}>
-                {goal.done ? (
-                  <CheckCircle2 className="text-dashboard-dark" size={20} />
-                ) : (
-                  <Circle className="text-gray-300" size={20} />
+              <li key={goal.id} className="flex items-center gap-3 cursor-pointer group">
+                <div className="flex items-center gap-3 flex-1" onClick={() => toggleGoal(goal.id)}>
+                  {goal.done ? (
+                    <CheckCircle2 className="text-dashboard-dark" size={20} />
+                  ) : (
+                    <Circle className="text-gray-300" size={20} />
+                  )}
+                  <span className={`text-sm font-medium ${goal.done ? 'text-dashboard-dark line-through decoration-gray-300' : 'text-gray-500'}`}>
+                    {goal.text}
+                  </span>
+                </div>
+                {isEditingGoals && (
+                  <button onClick={() => deleteGoal(goal.id)} className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={14} />
+                  </button>
                 )}
-                <span className={`text-sm font-medium ${goal.done ? 'text-dashboard-dark line-through decoration-gray-300' : 'text-gray-500'}`}>
-                  {goal.text}
-                </span>
               </li>
             ))}
+            {goals.length === 0 && (
+              <li className="text-sm text-gray-400 text-center py-4">No goals added yet.</li>
+            )}
           </ul>
+
+          {isEditingGoals && (
+            <div className="mt-auto border-t border-gray-100 pt-4">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newGoalText}
+                  onChange={(e) => setNewGoalText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addGoal();
+                  }}
+                  placeholder="New goal..." 
+                  className="flex-1 px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-dashboard-dark"
+                />
+                <button onClick={addGoal} className="bg-dashboard-dark text-white p-2 rounded-xl hover:bg-black">
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Task in Process */}
