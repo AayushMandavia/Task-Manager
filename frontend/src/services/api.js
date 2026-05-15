@@ -65,4 +65,8 @@ export const taskAPI = {
   }
 };
 
-export default {};
+export const getTasks = taskAPI.getTasks;
+export const createTask = taskAPI.createTask;
+export const deleteTask = taskAPI.deleteTask;
+
+export default taskAPI;
