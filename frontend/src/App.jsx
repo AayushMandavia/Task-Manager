@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Calendar, CheckSquare, BarChart2, FileText, Settings, Users, Plug, ArrowLeft } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
+import CalendarPage from './pages/CalendarPage';
 import { AuthProvider } from './context/AuthContext';
 import LoginModal from './components/LoginModal';
 
@@ -119,6 +120,8 @@ function MainLayout() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
           </Routes>
+        ) : activeTab === 'Calendar' ? (
+          <CalendarPage setActiveTab={setActiveTab} />
         ) : (
           <MockPage title={activeTab} setActiveTab={setActiveTab} />
         )}
